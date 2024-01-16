@@ -28,9 +28,9 @@ def get_dollar_data_after():
 
     
     config = {
-	"ticker": "MSFT",
-    "start_date": "2023-09-11",
-    "end_date": "2023-10-13"
+	"ticker": "NVDA",
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-03"
     }
     
     global data_dict,yearl

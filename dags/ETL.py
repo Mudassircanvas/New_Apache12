@@ -21,6 +21,8 @@ import sys
 import pickle
 import glob
 import os.path
+import pytz
+
 from airflow import DAG
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
@@ -28,6 +30,7 @@ from mlfinlab.data_structures import standard_data_structures
 from datetime import date as dt
 from datetime import time as tm
 from datetime import datetime, date, time, timedelta
+from airflow.sensors.external_task_sensor import ExternalTaskSensor
 warnings.simplefilter(action='ignore', category=FutureWarning)
 nest_asyncio.apply()
 # from Extract2 import get_data
@@ -62,13 +65,21 @@ from dollar_time_extract_after import kit_after
 from dollar_time_extract_after_testing import kit_aftert
 from dollar_time_extract_after_testing_update import kit_aftert_update
 # from new2 import dollar_adjusting_update
-from Creatingfile import creating_files,creating_files_after, creating_files_split,creating_files2,creating_files_after2,creating_files_after3
+from Creatingfile import creating_files,creating_files_after, creating_files_split,creating_files2,creating_files_after2,creating_files_after3,creating_files_after_gpt,creating_files_after_gpt3,creating_files_historic,creating_files_historic_time
 from final_feature import wit
 from final_feature_exe import wit_exe
 from final_feature_after import wit_after
 
 from final_feature_after_testing import wit_after_testing
+from makingoh import makingohc,makingohc1
 
+
+
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.utils.dates import days_ago
+from airflow.decorators import dag, task
+from airflow.operators.python_operator import PythonOperator
+from airflow.utils.helpers import chain
 
 DEFAULT_ARGS = {
     'owner' : 'faizan',
@@ -585,7 +596,8 @@ def dollar_pipeline2():
 
     @task
     def get_dollar_file2(ticker_info):
-        ticker = creating_files(ticker_info)
+        # ticker = creating_files(ticker_info) # this one ws actuall 4 jan 2024
+        ticker = creating_files_historic(ticker_info)
 #         ticker1 = creating_files_split(ticker_info)
         print(ticker_info)
         print('jjjjjjjjjjjjjjjj')
@@ -607,7 +619,8 @@ def dollar_pipeline2():
         return ticker1
     @task
     def get_dollar_time_file2(ticker_info):
-        ticker = creating_files2(ticker_info)
+        # ticker = creating_files2(ticker_info) # actual
+        ticker = creating_files_historic_time(ticker_info)
 #         ticker1 = creating_files_split(ticker_info)
         print(ticker_info)
         print('jjjjjjjjjjjjjjjj')
@@ -922,17 +935,18 @@ def dollar_pipeline_after_testing_update2():
     
 Dag_dollar = dollar_pipeline_after_testing_update2()
 
-# stocks = ['NVDA','TSLA','AMD','AAPL','ASML','ENPH','INTC','TSM','NFLX','MRVL','AMZN','MSFT']
+stocks = ['NVDA','TSLA','AMD','INTC','TSM','NFLX','MRVL','AMZN','MSFT','ASML','ENPH','AAPL']
+# stocks = ['ENPH','INTC','TSM','NFLX','MRVL','AMZN','MSFT']
 # stocks = ['ACGL','AGL','AN','BAP','CHNG','FTSL','GILD','HLT','JDST','KS','MIC','NLOK','OSH','RF','SCG','SEP','TCO']
-# stocks = ['NVDA','TSLA','AMD','AAPL','ASML','ENPH']
-# stocks = ['INTC','TSM','NFLX','MRVL','AMZN','MSFT']
-# stocks=['NVDA']
-# stocks=['AAPL']
-stocks=['INTC']
-# stocks=['AMD','ASML']
+# stocks = ['AMD','AAPL','ENPH']
+# stocks = ['INTC','TSM','NFLX','MRVL','AMZN','MSFT','ASML']
+# stocks=['NFLX']
+# stocks=['ENPH']
+# stocks=['NVDA','AMD','ENPH']
+# stocks=['ENPH']
 # stocks = ['ENPH','INTC','TSM','NFLX']
-# stocks=['MRVL','AMZN','MSFT']
-# stocks=['TSLA']
+# stocks=['TSM','NFLX','MSFT']
+# stocks=['INTC']
 
 
 @dag(
@@ -999,8 +1013,10 @@ def dollar_pipeline_update_time2():
         print('jjjjjjjjjjjjjjjj')
         return ticker_info
     
+    start = DummyOperator(task_id='start')
+    end = DummyOperator(task_id='end')
 
-
+    last_task = start
     for i in stocks:
         try:
             print(i)
@@ -1010,9 +1026,24 @@ def dollar_pipeline_update_time2():
             ticker_info2 = get_dollar_timee_update2(dol_adj_file_split)
             ticker_info3=get_dollar_time_file2(ticker_info2)
             feature = fin_feature(ticker_info3)
+
+            # chain(start, ticker_info, dol_adj_file, dol_adj_file_split, ticker_info2, ticker_info3, feature, end)
+
+
+            last_task >> ticker_info
+            ticker_info >> dol_adj_file
+            dol_adj_file >> dol_adj_file_split
+            dol_adj_file_split >> ticker_info2
+            ticker_info2 >> ticker_info3
+            ticker_info3 >> feature
+
+            # Update the last_task to be the final task for this stock
+            last_task = feature
+
         except Exception as e:
         # Handle the exception
             print(f"Error occurred while processing {tickers}: {e}")
+    last_task >> end
     
 Dag_dollar = dollar_pipeline_update_time2()
 
@@ -1028,8 +1059,8 @@ Dag_dollar = dollar_pipeline_update_time2()
     dag_id='dollars_after_testing_update_time2',
     default_args=DEFAULT_ARGS,
     start_date=days_ago(2),
-    schedule_interval='31 13 * * *',
-#     schedule_interval=None,
+    schedule_interval='31 09 * * *',
+    # schedule_interval=None,
     catchup=False
     )
 
@@ -1103,8 +1134,8 @@ Dag_dollar = dollar_pipeline_after_testing_update_time2()
     dag_id='dollars_after_testing_update_time_new2',
     default_args=DEFAULT_ARGS,
     start_date=days_ago(2),
-    schedule_interval='31 13 * * *',
-#     schedule_interval=None,
+    # schedule_interval='35 14 * * *',
+    schedule_interval=None,
     catchup=False
     )
 
@@ -1172,6 +1203,319 @@ def dollar_pipeline_after_testing_update_time_new2():
         feature = feature_inprogress(ticker_info3)
     
 Dag_dollar = dollar_pipeline_after_testing_update_time_new2()
+
+
+
+
+
+
+@dag(
+    dag_id='makingoh',
+    default_args=DEFAULT_ARGS,
+    start_date=days_ago(2),
+    schedule_interval=None,
+    catchup=False
+    )
+
+
+def making():
+
+    @task
+    def making1():
+        ticker_info = makingohc()
+        print()
+        print('jjjjjjjjjjjjjjjj')
+       
+    # @task
+    # def making2():
+    #     ticker_info = makingohc1()
+    #     print()
+    #     print('jjjjjjjjjjjjjjjj')
+
+    ticker_info = making1()
+    # ticker_info = making2()
+
+
+Dag_dollar = making()
+
+#############################################################
+
+def nyse_open_in_utc():
+    ny_tz = pytz.timezone('America/New_York')
+    nyse_open_et = datetime.now(ny_tz).replace(hour=9, minute=31, second=0, microsecond=0)
+
+    # Convert NYSE opening time to UTC
+    nyse_open_utc = nyse_open_et.astimezone(pytz.utc)
+    return nyse_open_utc.strftime('%M %H * * *')
+
+##################################################################
+@dag(
+    dag_id='dollars_after_testing_update_time_new3',
+    default_args=DEFAULT_ARGS,
+    start_date=days_ago(2),
+    schedule_interval=nyse_open_in_utc(),
+#     schedule_interval=None,
+    catchup=False
+    )
+
+
+def dollar_pipeline_after_testing_update_time_new3():
+    
+        
+    @task
+    def get_dollar_update(tickers):
+        ticker_info = get_dollar_data_updated_after(tickers)
+#         print(ticker_info)
+#         print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+
+    
+
+    @task
+    def get_dollar_file_update2(ticker_info):
+        ticker = creating_files_after(ticker_info)
+        print(ticker_info)
+#         ticker1 = creating_files_split(ticker_info)
+#         print(ticker_info)
+#         print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+    @task
+    def get_dollar_file_split_update2(ticker_info):
+#         ticker = creating_files(ticker_info)
+        ticker1 = splite_after(ticker_info)
+#         print(ticker_info)
+#         print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+    
+    @task
+    def get_dollar_timee_update2(ticker_info):
+#         ticker = creating_files(ticker_info)
+        ticker1 = kit_aftert_update(ticker_info)
+#         print(ticker1)
+#         print('jjjjjjjjjjjjjjjj')
+        return ticker1
+    @task
+    def get_dollar_time_file2(ticker_info):
+        ticker = creating_files_after3(ticker_info)
+        print(ticker_info)
+#         ticker1 = creating_files_split(ticker_info)
+#         print(ticker_info)
+#         print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+
+
+    
+    
+    @task
+    def feature_inprogress(ticker_info):
+        ticker_info = wit_after_testing(ticker_info)
+#         print(ticker_info)
+#         print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+
+
+    for i in stocks:
+#         print(i)
+        ticker_info = get_dollar_update(i)
+        dol_adj_file = get_dollar_file_update2(ticker_info)
+        dol_adj_file_split = get_dollar_file_split_update2(dol_adj_file)
+        ticker_info2 = get_dollar_timee_update2(dol_adj_file_split)
+        ticker_info3=get_dollar_time_file2(ticker_info2)
+        feature = feature_inprogress(ticker_info3)
+    
+Dag_dollar = dollar_pipeline_after_testing_update_time_new3()
+
+
+###########################################################################################
+
+
+def nyse_open_8_30_pm_in_utc():
+    # Time zone for New York
+    ny_tz = pytz.timezone('America/New_York')
+    
+    # NYSE opening time at 8:30 PM ET
+    nyse_open_et = datetime.now(ny_tz).replace(hour=20, minute=39, second=0, microsecond=0)
+    
+    # Convert NYSE opening time to UTC
+    nyse_open_utc = nyse_open_et.astimezone(pytz.utc)
+    return nyse_open_utc.strftime('%M %H * * *')
+
+# def nyse_close_plus_10_in_utc():
+#     # Time zone for New York
+#     ny_tz = pytz.timezone('America/New_York')
+    
+#     # NYSE closing time at 4:00 PM ET
+#     nyse_close_et = datetime.now(ny_tz).replace(hour=16, minute=10, second=0, microsecond=0)
+    
+#     # Convert NYSE closing time + 10 minutes to UTC
+#     nyse_close_utc = nyse_close_et.astimezone(pytz.utc)
+#     return nyse_close_utc.strftime('%M %H * * *')
+
+
+def nyse_close_plus_10_cron():
+    # NYSE closes at 16:00 New York time
+    ny_close_time = datetime.now(pytz.timezone('America/New_York')).replace(
+        hour=16, minute=0, second=0, microsecond=0)
+
+    # Add 10 minutes to the closing time
+    ny_close_time_plus_10 = ny_close_time + timedelta(minutes=10)
+
+    # Get the hour and minute in UTC
+    ny_close_time_plus_10_utc = ny_close_time_plus_10.astimezone(pytz.utc)
+    hour = ny_close_time_plus_10_utc.hour
+    minute = ny_close_time_plus_10_utc.minute
+
+    # Generate the cron expression for the schedule
+    cron_schedule = f"{minute} {hour} * * *"
+    return cron_schedule
+
+@dag(
+    dag_id='dollars_update_time3',
+    default_args=DEFAULT_ARGS,
+    start_date=days_ago(2),
+    schedule_interval=nyse_close_plus_10_cron(),
+    catchup=False
+    )
+
+
+def dollar_pipeline_update_time3():
+
+    @task
+    def get_dollar_update2(tickers):
+        ticker_info = get_dollar_data_updated(tickers)
+        print(ticker_info)
+        print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+
+
+    @task
+    def get_dollar_file_update2(ticker_info):
+        # ticker = creating_files(ticker_info) # actuall one 8 jan
+        ticker1 = creating_files_historic(ticker_info)
+        print(ticker_info)
+        print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+    
+    @task
+    def get_dollar_file_split_update2(ticker_info):
+#         ticker = creating_files(ticker_info)
+        ticker1 = splite(ticker_info)
+        print(ticker_info)
+        print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+    
+    @task
+    def get_dollar_timee_update2(ticker_info):
+#         ticker = creating_files(ticker_info)
+        ticker1 = kit_update(ticker_info)
+        print(ticker1)
+        print('jjjjjjjjjjjjjjjj')
+        return ticker1
+    @task
+    def get_dollar_time_file2(ticker_info):
+        # ticker = creating_files2(ticker_info) # actuall one 8 jan
+        ticker1 = creating_files_historic_time(ticker_info)
+        print(ticker_info)
+        print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+#     @task
+#     def fin_feature(ticker_info):
+#         ticker = wit(ticker_info)
+# #         ticker1 = creating_files_split(ticker_info)
+#         print(ticker_info)
+#         print('jjjjjjjjjjjjjjjj')
+#         return ticker_info
+    @task
+    def fin_feature(ticker_info):
+        ticker = wit_exe(ticker_info)
+#         ticker1 = creating_files_split(ticker_info)
+        print(ticker_info)
+        print('jjjjjjjjjjjjjjjj')
+        return ticker_info
+        
+    @task
+    def making1():
+        ticker_inf = makingohc()
+        print()
+        print('jjjjjjjjjjjjjjjj')
+       
+    # @task
+    # def making2():
+    #     ticker_inf = makingohc1()
+    #     print()
+    #     print('jjjjjjjjjjjjjjjj')
+
+
+
+    start = DummyOperator(task_id='start')
+    end = DummyOperator(task_id='end')
+
+    last_task = start
+    for i in stocks:
+        try:
+            print(i)
+            ticker_info = get_dollar_update2(i)
+            dol_adj_file = get_dollar_file_update2(ticker_info)
+            dol_adj_file_split = get_dollar_file_split_update2(dol_adj_file)
+            ticker_info2 = get_dollar_timee_update2(dol_adj_file_split)
+            ticker_info3=get_dollar_time_file2(ticker_info2)
+            feature = fin_feature(ticker_info3)
+
+            # chain(start, ticker_info, dol_adj_file, dol_adj_file_split, ticker_info2, ticker_info3, feature, end)
+
+
+            last_task >> ticker_info
+            ticker_info >> dol_adj_file
+            dol_adj_file >> dol_adj_file_split
+            dol_adj_file_split >> ticker_info2
+            ticker_info2 >> ticker_info3
+            ticker_info3 >> feature
+
+            # Update the last_task to be the final task for this stock
+            last_task = feature
+
+        except Exception as e:
+        # Handle the exception
+            print(f"Error occurred while processing {tickers}: {e}")
+
+    all_stocks_processed = DummyOperator(task_id='all_stocks_processed')
+    last_task >> all_stocks_processed >> making1() >> end
+
+    # last_task >> end
+    
+Dag_dollar = dollar_pipeline_update_time3()
+
+
+
+@dag(
+    dag_id='makingoh1',
+    default_args=DEFAULT_ARGS,
+    start_date=days_ago(2),
+    schedule_interval=None,
+    catchup=False
+    )
+
+
+def making_new():
+
+
+    @task
+    def making1():
+        ticker_info = makingohc()
+        print()
+        print('jjjjjjjjjjjjjjjj')
+       
+    @task
+    def making2():
+        ticker_info = makingohc1()
+        print()
+        print('jjjjjjjjjjjjjjjj')
+
+    making1() >> making2()
+
+Dag_dollar = making_new()
+
+
 
 ##################################################################################################################
 

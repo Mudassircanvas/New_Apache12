@@ -215,7 +215,7 @@ def wit_after_testing(ticker_info):
 #     print('jaaaaaaaaa')
 
     df = pd.read_feather(resample_path)
-#     print('print',df)
+    print('print',df)
     dates=df.t
 #     timestamps_new=[]
 #     for count, currDate in enumerate(list(dates)):
@@ -225,7 +225,7 @@ def wit_after_testing(ticker_info):
     timestamps_new = []
     start_time = None
     date_list = dates.tolist()
-#     print(date_list)
+    print(date_list)
     for currDate in date_list:
         if currDate.time() == pd.Timestamp("15:30:00").time() and not start_time:
             start_time = currDate
@@ -240,7 +240,7 @@ def wit_after_testing(ticker_info):
 #     timestamps_new2 = timestamps_new[-2]
 #     timestamps_new = timestamps_new[-1]
 #     print('timestamps:',timestamps_new7,timestamps_new6,timestamps_new2)
-    
+    print(timestamps_new)
     timestamps_new = timestamps_new[-1]
     print(timestamps_new)
 

@@ -272,4 +272,81 @@ def kit_aftert_update(ticker_info):
             for key in keys_to_remove:
                 del data_dict[key]
     return ticker_info
-            # ...[rest of your code]
+#             # ...[rest of your code]
+# import warnings
+# import aiohttp
+# from datetime import datetime, date, timedelta
+# import pandas as pd
+# import os
+# import re
+# import asyncio
+# import nest_asyncio
+
+# nest_asyncio.apply()
+# warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# def unix_to_date(dataset, col_name):
+#     dataset[col_name] = pd.to_datetime(dataset[col_name], unit='ms')
+#     dataset[col_name] = dataset[col_name].dt.tz_localize('UTC')
+#     dataset[col_name] = dataset[col_name].dt.tz_convert('US/Eastern')
+#     dataset[col_name] = dataset[col_name].dt.tz_localize(None)
+#     return dataset[col_name]
+
+# def daterange(date1, date2):
+#     for n in range(int((date2 - date1).days) + 1):
+#         yield date1 + timedelta(n)
+
+# async def get(session, date, tickerr):
+#     api = f"https://api.polygon.io/v2/aggs/ticker/{tickerr}/range/15/minute/{date}/{date}?adjusted=true&sort=asc&limit=1440&apiKey=Ot5XxPIdM4IAsPj6TdlIqHajQFK356JB&limit=50000"
+#     resp = await session.request('GET', url=api)
+#     data = await resp.json()
+#     return data
+
+# async def main(dates, tickerr):
+#     async with aiohttp.ClientSession() as session:
+#         tasks = [get(session, date, tickerr) for date in dates]
+#         return await asyncio.gather(*tasks)
+
+# def kit_aftert_update(ticker_info):
+#     tickerr = ticker_info['name']
+#     current_year = date.today().year
+#     years_to_check = [current_year, current_year - 1]
+#     year_path = []
+
+#     for year in years_to_check:
+#         current_folder = f'./docker_storage/Time_after/{tickerr}_{year}_market/'
+#         if os.path.exists(current_folder):
+#             year_path.append(str(year))
+#             if os.listdir(current_folder):
+#                 file_list = os.listdir(current_folder)
+#                 dates = [re.search(r"(\d{4}-\d{2}-\d{2})", f).group(1) for f in file_list]
+#                 date_objects = [datetime.strptime(d, "%Y-%m-%d") for d in dates]
+#                 sorted_dates = sorted(date_objects)
+#                 last_date = sorted_dates[-2] if len(sorted_dates) > 1 else sorted_dates[0]
+#                 start_date = last_date.strftime("%Y-%m-%d")
+#                 end_date = str(date.today())
+
+#                 date_range = [d.strftime("%Y-%m-%d") for d in daterange(datetime.strptime(start_date, "%Y-%m-%d"), datetime.strptime(end_date, "%Y-%m-%d"))]
+#                 data = asyncio.run(main(date_range, tickerr))
+#                 print(1)
+#                 for d in data:
+#                     if 'results' in d:
+#                         df = pd.DataFrame(d['results'])
+#                         if not df.empty:
+#                             df['t'] = unix_to_date(df, "t")
+#                             df = df.sort_values(by="t")
+#                             df.set_index('t', inplace=True)  # Ensure the index is datetime
+#                             df_afternoon = df.between_time('15:30', '19:45')
+#                             df_morning = df.between_time('04:00', '09:30')
+#                             df_combined = pd.concat([df_morning, df_afternoon]).sort_index()
+#                             file_path = f'./docker_storage/Time_after/{tickerr}_{year}_market/{tickerr}_{d["query"]["from"]}_Time_Tick-Data.ftr'
+#                             print(file_path)
+#                             df_combined.to_feather(file_path)
+    
+#     if year_path:
+#         ticker_info['year_path'] = year_path
+#         return ticker_info
+#     else:
+#         print(f"No data directory found for {tickerr} for the years {current_year} and {current_year - 1}")
+#         return None
+

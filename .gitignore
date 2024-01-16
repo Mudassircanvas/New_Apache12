@@ -4,4 +4,8 @@ ta-lib/
 
 mlfinlab/
 
+logs/
+
+dags/making.py
+dags/makingoh_tsla.py
 # hello

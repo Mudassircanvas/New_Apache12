@@ -214,7 +214,7 @@ def wit_exe(ticker_info):
 #     print('jaaaaaaaaa')
 
     df = pd.read_feather(resample_path)
-#     print('print',df)
+    print('print',df)
     
     
     print('--------------------------------')
@@ -224,22 +224,23 @@ def wit_exe(ticker_info):
     resample_date = pd.to_datetime(dates)
     resample_date = resample_date.iloc[-1]
     resample_date = str(resample_date)
-#     print(str(resample_date))
+    print(str(resample_date))
     
     feature = pd.read_csv(f"./docker_storage/features/{tickerr}.csv")
-#     print('featureee')
+    print('featureee')
+    print(feature)
     feature_date = feature.tail(1)
     feature_date = feature_date['Unnamed: 0']
     feature_date = pd.to_datetime(feature_date)
     feature_date = feature_date.iloc[-1]
     feature_date = str(feature_date)
-#     print(str(feature_date))
+    print(str(feature_date))
     new_dates = dates[(dates>=feature_date)&(dates<=resample_date)]
-#     print(new_dates)
+    print(new_dates)
 #     print('%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 #     print(dates)
     dates = new_dates.reset_index(drop=True)
-#     print('new',dates)
+    print('new',dates)
 #     dates = new_dates
     
     
@@ -250,14 +251,15 @@ def wit_exe(ticker_info):
     for count, currDate in enumerate(list(dates)):
         if count >0:
             timestamps_new.append((dates[count-1],currDate))
-#     print(timestamps_new)
+    print(timestamps_new)
     timestamps_new=pd.Series(timestamps_new)
     timestamps_new.drop_duplicates(keep='first', inplace=True)
     timestamps_new=list(timestamps_new)
 #     print(timestamps_new)
-    impute_path = f'./docker_storage/Raw_Data_New/full_file/{tickerr}_full.ftr'
+    impute_path = f'./docker_storage/Raw_Data_New/Raw_Data_Splitted/full_file/{tickerr}_full_split.ftr'
     print("Loading DataSet ")
     df = pd.read_feather(impute_path) ## change path read date and time
+    print(df)
     df['participant_timestamp'] = pd.to_datetime(df['participant_timestamp'])
     df.set_index('participant_timestamp', inplace=True)
     df['tic_diff']=df.price.diff()
@@ -272,11 +274,13 @@ def wit_exe(ticker_info):
     # df.dropna(inplace=True)
     df=df.iloc[15:, :]
     #     df.sort_index(ascending=True, inplace=True)
-#     print('Dataset Loaded...')   
+    print('Dataset Loaded...')   
     data_store = {}
     count=1
     TIC = tickerr
+    print(timestamps_new)
     for i in (timestamps_new):
+        print('enter')
         print(i[0],i[1])
         x = df.loc[i[0]:i[1]].iloc[1:]
         print(x)
@@ -314,11 +318,13 @@ def wit_exe(ticker_info):
     feature_exe = pd.read_csv(f"./docker_storage/features/{tickerr}_exe1.csv")
     combined_df = pd.concat([feature, feature_exe], ignore_index=True)
     combined_df.drop_duplicates(subset='Unnamed: 0', inplace=True)
-#     print(combined_df)
+    print(combined_df)
     combined_df.to_csv(f"./docker_storage/features/{tickerr}_execution.csv")
     print('-------------------------------------------------')
     ticker = tickerr
     print(ticker)
+    re = pd.read_feather(f"./docker_storage/Time_Data_New/full_file/{ticker}_Time_Tick-Data.ftr")
+    print(re)
 #     df2 = pd.read_feather(f'./docker_storage/Time_Data_New/full_file/{ticker}_Time_Tick-Data.ftr')
 #     df1 = pd.read_csv(f'./docker_storage/features/{ticker}_execution.csv')
 #     df1.drop('Unnamed: 0.1',axis=1,inplace=True)

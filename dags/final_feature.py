@@ -210,11 +210,11 @@ def wit(ticker_info):
 #                                        Time_tick/{TICKER}_TimeDF_const_BarsPerDay.ftr
     
 #     docker_storage/
-    print(resample_path)
+    # print(resample_path)
     print('jaaaaaaaaa')
 
     df = pd.read_feather(resample_path)
-    print('print',df)
+    # print('print',df)
     dates=df.t
     timestamps_new=[]
     for count, currDate in enumerate(list(dates)):
@@ -236,7 +236,7 @@ def wit(ticker_info):
     df.loc[(df.tic_diff>0), 'tick_rule']=1
     df.loc[(df.tic_diff<0), 'tick_rule']=-1   
     df['tick_rule'] = df['tick_rule'].ffill()
-
+    print(df)
     print('tick rule done ')
     # df.dropna(inplace=True)
     df=df.iloc[15:, :]
@@ -247,7 +247,7 @@ def wit(ticker_info):
     TIC = tickerr
     for i in (timestamps_new):
         x = df.loc[i[0]:i[1]].iloc[1:]
-        print(x)
+        # print(x)
         x=feats(x, TIC, i)
         data_store[i[1]] = x
         count+=1
@@ -277,6 +277,8 @@ def wit(ticker_info):
                                    da.columns[13]: 'avg_tick_size',
 
                                    }, inplace=True)
+
+    print(da)
     da.to_csv(f"./docker_storage/features/{tickerr}.csv")
     print('done')
     

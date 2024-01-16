@@ -215,5 +215,8 @@ def kit_update(ticker_info):
             # Now, outside the loop, you can remove the keys
             for key in keys_to_remove:
                 del data_dict[key]
+    ticker_info['path'] = [f'./docker_storage/Time_Data_New/{tickerr}_2023/',f'./docker_storage/Time_Data_New/{tickerr}_2024/']
+    ticker_info['year_path']: ['2023', '2024']
+    print(ticker_info)
     return ticker_info
             # ...[rest of your code]

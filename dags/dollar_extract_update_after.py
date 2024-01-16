@@ -43,9 +43,10 @@ def get_dollar_data_updated_after(tickers):
         date_objects = [datetime.strptime(date, "%Y-%m-%d") for date in dates]
         sorted_dates = sorted(date_objects)
 #         last_date = sorted_dates[-1]
-        last_date = sorted_dates[-2]
+        last_date = sorted_dates[-2] ### This was the Actual Jan 1st 2024
+        # last_date = '2024-01-01'
         last_date = last_date.strftime("%Y-%m-%d")
-#         print(last_date)
+        print(last_date)
 #         print(last_date1)
         start_date = str(last_date)
         
@@ -281,3 +282,76 @@ def get_dollar_data_updated_after(tickers):
     print(ticker_info)
     return ticker_info
 
+# import warnings
+# import aiohttp
+# import asyncio
+# import pandas as pd
+# from datetime import datetime, date, timedelta
+# import os
+# import re
+# import nest_asyncio
+
+# nest_asyncio.apply()
+# warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# def unix_to_date(dataset, col_name):
+#     dataset[col_name] = pd.to_datetime(dataset[col_name])
+#     dataset[col_name] = dataset[col_name].dt.tz_localize('UTC')
+#     dataset[col_name] = dataset[col_name].dt.tz_convert('US/Eastern')
+#     dataset[col_name] = dataset[col_name].dt.tz_localize(None)
+#     return dataset[col_name]
+
+# async def get(session, date, ticker):
+#     api = f"https://api.polygon.io/v3/trades/{ticker}?timestamp={date}&apiKey=YOUR_API_KEY&limit=50000"
+#     resp = await session.request('GET', url=api)
+#     data = await resp.json()
+#     return data
+
+# async def main(dates, ticker):
+#     async with aiohttp.ClientSession() as session:
+#         tasks = [get(session, date, ticker) for date in dates]
+#         return await asyncio.gather(*tasks)
+
+# def get_dollar_data_updated_after(tickers):
+#     ticker = tickers
+#     current_year = date.today().year
+#     years_to_check = [current_year, current_year - 1]
+#     year_path = []
+
+#     for year in years_to_check:
+#         current_folder = f'./docker_storage/after_raw_data/{ticker}_{year}/'
+#         if os.path.exists(current_folder) and os.listdir(current_folder):
+#             file_list = os.listdir(current_folder)
+#             dates = [re.search(r"(\d{4}-\d{2}-\d{2})", f).group(1) for f in file_list]
+#             date_objects = [datetime.strptime(d, "%Y-%m-%d") for d in dates]
+#             sorted_dates = sorted(date_objects)
+#             last_date = sorted_dates[-2] if len(sorted_dates) > 1 else sorted_dates[0]
+#             start_date = last_date.strftime("%Y-%m-%d")
+#             end_date = str(date.today())
+
+#             date_range = [d.strftime("%Y-%m-%d") for d in pd.date_range(start=start_date, end=end_date)]
+#             data = asyncio.run(main(date_range, ticker))
+
+#             # Process and save data
+#             for d in data:
+#                 if 'results' in d:
+#                     df = pd.DataFrame(d['results'])
+#                     if not df.empty:
+#                         df['participant_timestamp'] = unix_to_date(df, "sip_timestamp")
+#                         df = df.sort_values(by="participant_timestamp")
+#                         df = df[["price", "size"]]
+#                         date_str = datetime.fromisoformat(d['day']).strftime("%Y-%m-%d")
+#                         file_path = f'{current_folder}/{ticker}_{date_str}_Tick-Data.ftr'
+#                         df.to_feather(file_path)
+#                         print(f"Data saved for {date_str}")
+
+#             year_path.append(str(year))
+
+#     if year_path:
+#         # Prepare and return ticker_info with the years data was found
+#         path_loc = f'./docker_storage/after_raw_data/{ticker}_{year_path[0]}/'  # Path of the most recent year
+#         ticker_info = {"name": ticker, "path": path_loc, 'year_path': year_path}
+#         return ticker_info
+#     else:
+#         print(f"Data does not exist for {ticker} in both {current_year} and {current_year - 1}")
+#         return None
